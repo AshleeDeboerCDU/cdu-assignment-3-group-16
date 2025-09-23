@@ -50,8 +50,8 @@ model_label = ttk.Label(model_selection_frame, text="Model Selection:")
 model_label.pack(side="left", padx=(0, 5))
 
 # Dropdown for model selection
-model_options = ["Text-to-Image", "Image-to-Text", "Audio-to-Text"] # Example options
-model_combo = ttk.Combobox(model_selection_frame, values=["Text-to-Image", "Image-to-Text", "Audio-to-Text"])
+model_options = ["Text-to-Image", "Image-to-Text", "Audio-to-Text"]
+model_combo = ttk.Combobox(model_selection_frame, values=["Text-to-Image", "Image-to-Text"])
 model_combo.set("Text-to-Image")
 model_combo.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
