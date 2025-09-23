@@ -1,7 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
-from PIL import Image, ImageTk
 
 # Import the functions from your separate file
 import gui_functions
@@ -22,15 +20,12 @@ root.config(menu=menu_bar)
 # Create File menu
 file_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="File", menu=file_menu)
-file_menu.add_command(label="Open", command=gui_functions.open_file)
-file_menu.add_command(label="Save", command=gui_functions.save_file)
-file_menu.add_separator() # Add a separator line
 file_menu.add_command(label="Exit", command=lambda: gui_functions.exit_app(root))
 
 # Create Models menu
 models_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Models", menu=models_menu)
-models_menu.add_command(label="Load Model", command=gui_functions.load_model)
+models_menu.add_command(label="Load Model", command=lambda: gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame))
 
 # Create Help menu
 help_menu = tk.Menu(menu_bar, tearoff=0)

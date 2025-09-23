@@ -7,14 +7,25 @@ from tkinter import filedialog
 from PIL import Image, ImageTk
 
 
-def open_file():
-    print("Open file selected")
+def open_file(input_type_var, input_text, input_image_label):
+    """
+    Opens a file dialog for the "Open" menu button.
+    It runs the same function as the "Browse" button.
+    """
+    selected_type = input_type_var.get()
+    layout_type = None  # Assign a default value
 
+    # We'll use the "Text-to-Image" layout logic for the menu open button,
+    # as it has a dynamic input type.
+    if selected_type == "Text":
+        layout_type = "Text-to-Image"
+    elif selected_type == "Image":
+        layout_type = "Text-to-Image"
 
-def save_file():
-    """Saves the current file or data."""
-    print("Save file selected")
-    messagebox.showinfo("Save", "File has been saved.")
+    if layout_type:
+        open_file_dialog(input_type_var, input_text, input_image_label, layout_type)
+    else:
+        messagebox.showerror("Error", "Unsupported input type.")
 
 
 def exit_app(root):
@@ -23,17 +34,10 @@ def exit_app(root):
         root.quit()
 
 
-def load_model():
-    """Loads an AI model."""
-    print("Load Model selected")
-    messagebox.showinfo("Load Model", "Model is now loaded.")
-
-
 def show_about():
     """Displays information about the application."""
     print("About dialog opened")
     messagebox.showinfo("About", "Tkinter AI GUI\nVersion 1.0\nCreated by Group 16")
-
 
 def load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame):
     """
@@ -48,6 +52,12 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         widget.destroy()
     for widget in model_output_frame.winfo_children():
         widget.destroy()
+
+    # Get the trace name for the old trace so we can delete it
+    trace_name = input_type_var.trace_info()
+    for mode, name in trace_name:
+        if name and mode == "w":
+            input_type_var.trace_vdelete("w", name)
 
     if selected_model == "Image-to-Text":
         # Create the new widgets for the "Image-to-Text" layout
@@ -102,6 +112,10 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         output_text = tk.Text(model_output_frame, height=10, width=30)
         output_image_label = ttk.Label(model_output_frame, background="gray")
 
+        # Initial layout setup
+        input_text.pack(fill="both", expand=True)
+        output_text.pack(fill="both", expand=True)
+
         bottom_button_frame = ttk.Frame(user_input_frame)
         bottom_button_frame.pack(fill="x", pady=5)
         run_model1_button = ttk.Button(bottom_button_frame, text="Run Model 1")
@@ -110,11 +124,6 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         run_model2_button.pack(side="left", padx=(0, 5))
         clear_button = ttk.Button(bottom_button_frame, text="Clear")
         clear_button.pack(side="right")
-
-        input_text.pack(fill="both", expand=True)
-        output_text.pack(fill="both", expand=True)
-
-
 
         # Re-link the buttons and variable trace
         input_type_var.trace_add("write",
@@ -140,21 +149,32 @@ def handle_input_type_change(input_type_var, input_text, input_image_label, sing
     selected_type = input_type_var.get()
 
     if selected_type == "Text":
-        input_image_label.pack_forget()
-        single_line_textbox.pack_forget()
-        input_text.pack(fill="both", expand=True)
-        output_image_label.pack_forget()
-        output_text.pack(fill="both", expand=True)
+        if input_image_label.winfo_exists():
+            input_image_label.pack_forget()
+        if single_line_textbox.winfo_exists():
+            single_line_textbox.pack_forget()
+        if input_text.winfo_exists():
+            input_text.pack(fill="both", expand=True)
+        if output_image_label.winfo_exists():
+            output_image_label.pack_forget()
+        if output_text.winfo_exists():
+            output_text.pack(fill="both", expand=True)
 
     elif selected_type == "Image":
-        input_text.pack_forget()
-        input_image_label.pack(fill="both", expand=True)
-        single_line_textbox.pack(fill="x", pady=(5, 0))
-        output_text.pack_forget()
-        output_image_label.pack(fill="both", expand=True)
+        if input_text.winfo_exists():
+            input_text.pack_forget()
+        if input_image_label.winfo_exists():
+            input_image_label.pack(fill="both", expand=True)
+        if single_line_textbox.winfo_exists():
+            single_line_textbox.pack(fill="x", pady=(5, 0))
+        if output_text.winfo_exists():
+            output_text.pack_forget()
+        if output_image_label.winfo_exists():
+            output_image_label.pack(fill="both", expand=True)
 
 
-def open_file_dialog(input_type_var, input_text, input_image_label, layout_type):
+
+def open_file_dialog(input_type_var, input_text, input_image_label, layout_type, new_width=None):
     # This function is now only used for the "Image-to-Text" and "Text-to-Image" layouts
 
     if layout_type == "Image-to-Text":
@@ -225,7 +245,7 @@ def open_file_dialog(input_type_var, input_text, input_image_label, layout_type)
                         new_height = int(new_width / aspect_ratio)
                     else:
                         new_height = container_height
-                        new_width = int(new_height * aspect_ratio)
+                        new_width = int(new_width * aspect_ratio)
                     resized_image = original_image.resize((new_width, new_height), Image.LANCZOS)
                     tk_image = ImageTk.PhotoImage(resized_image)
                     input_image_label.config(image=tk_image)
