@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import models
 
 # Import the functions from your separate file
 import gui_functions
@@ -45,8 +46,9 @@ model_label = ttk.Label(model_selection_frame, text="Model Selection:")
 model_label.pack(side="left", padx=(0, 5))
 
 # Dropdown for model selection
-model_options = ["Text-to-Image", "Image-to-Text", "Audio-to-Text"]
-model_combo = ttk.Combobox(model_selection_frame, values=["Text-to-Image", "Image-to-Text"])
+model_configs = models.ModelConfigs(r"C:\Users\halen\Downloads\Assignment 3\model_info.json")
+model_options = [k for k in model_configs.show_configs().keys()]
+model_combo = ttk.Combobox(model_selection_frame, values=model_options)
 model_combo.set("Text-to-Image")
 model_combo.pack(side="left", fill="x", expand=True, padx=(0, 10))
 

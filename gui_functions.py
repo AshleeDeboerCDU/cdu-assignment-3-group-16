@@ -5,6 +5,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
 from PIL import Image, ImageTk
+from models import AIModelFactory, ModelConfigs, TextToImage, TextGeneration
 
 
 def open_file(input_type_var, input_text, input_image_label):
@@ -18,7 +19,7 @@ def open_file(input_type_var, input_text, input_image_label):
     # We'll use the "Text-to-Image" layout logic for the menu open button,
     # as it has a dynamic input type.
     if selected_type == "Text":
-        layout_type = "Text-to-Image"
+        layout_type = "Text-Generation"
     elif selected_type == "Image":
         layout_type = "Text-to-Image"
 
@@ -27,12 +28,10 @@ def open_file(input_type_var, input_text, input_image_label):
     else:
         messagebox.showerror("Error", "Unsupported input type.")
 
-
 def exit_app(root):
     """Exits the application gracefully."""
     if messagebox.askyesno("Exit", "Are you sure you want to exit?"):
         root.quit()
-
 
 def show_about():
     """Displays information about the application."""
@@ -46,6 +45,10 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
     """
     selected_model = model_combo.get()
     messagebox.showinfo("Model Loaded", f"{selected_model} Loaded")
+    # Model initialisation
+    model_configs = ModelConfigs(r"C:\Users\halen\Downloads\Assignment 3\model_info.json")
+    model_factory = AIModelFactory()
+    model_configs.show_configs()
 
     # Clear all existing widgets from the frames to prepare for the new layout
     for widget in user_input_frame.winfo_children():
@@ -59,39 +62,41 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         if name and mode == "w":
             input_type_var.trace_vdelete("w", name)
 
-    if selected_model == "Image-to-Text":
+    if selected_model == "Text-Generation":
+        # Init model
+        text_generator = model_factory.get_text_generation_model(model_configs)
+        assert text_generator is not None, "Failed to load Text Generation model."
+
         # Create the new widgets for the "Image-to-Text" layout
-        browse_button = ttk.Button(user_input_frame, text="Browse")
-        input_image_label = ttk.Label(user_input_frame, background="gray")
+        # browse_button = ttk.Button(user_input_frame, text="Browse")
+        button_container = ttk.Frame(user_input_frame)
+        button_container.pack(fill="x", pady=(0, 5))
+        # input_image_label = ttk.Label(user_input_frame, background="gray")
         text_output_box = tk.Text(model_output_frame, height=10, width=30)
 
         # Pack the new widgets and buttons
-        browse_button.pack(pady=10)
+        # browse_button.pack(pady=10)
         input_image_label.pack(fill="both", expand=True)
         text_output_box.pack(fill="both", expand=True)
 
         bottom_button_frame = ttk.Frame(user_input_frame)
         bottom_button_frame.pack(fill="x", pady=5)
-        run_model1_button = ttk.Button(bottom_button_frame, text="Run Model 1")
+        run_model1_button = ttk.Button(bottom_button_frame, text=f"Generate {selected_model} Output")
         run_model1_button.pack(side="left", padx=(0, 5))
-        run_model2_button = ttk.Button(bottom_button_frame, text="Run Model 2")
-        run_model2_button.pack(side="left", padx=(0, 5))
+
         clear_button = ttk.Button(bottom_button_frame, text="Clear")
         clear_button.pack(side="right")
 
         # We need to link the buttons to the new widgets
-        browse_button.config(
-            command=lambda: open_file_dialog(input_type_var, None, input_image_label, layout_type="Image-to-Text"))
         run_model1_button.config(
-            command=lambda: run_model(1, "Image-to-Text", None, input_image_label, None, text_output_box, None,
-                                      input_type_var))
-        run_model2_button.config(
-            command=lambda: run_model(2, "Image-to-Text", None, input_image_label, None, text_output_box, None,
-                                      input_type_var))
+            command=lambda: run_text_generation_model(text_generator, None, text_output_box))
+
         clear_button.config(command=lambda: clear_fields(None, input_image_label, None, text_output_box, None))
 
-    elif selected_model == "Text-to-Image":
+    elif selected_model == "Text-To-Image":
         # The existing "Text-to-Image" layout logic
+        image_generator = model_factory.get_text_to_image_model(model_configs)
+        assert image_generator is not None, "Failed to load Text-to-Image model."
 
         # Force the radio button to "Text" mode
         input_type_var.set("Text")
@@ -118,10 +123,9 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
 
         bottom_button_frame = ttk.Frame(user_input_frame)
         bottom_button_frame.pack(fill="x", pady=5)
-        run_model1_button = ttk.Button(bottom_button_frame, text="Run Model 1")
+        run_model1_button = ttk.Button(bottom_button_frame, text=f"Generate {selected_model} Output")
         run_model1_button.pack(side="left", padx=(0, 5))
-        run_model2_button = ttk.Button(bottom_button_frame, text="Run Model 2")
-        run_model2_button.pack(side="left", padx=(0, 5))
+
         clear_button = ttk.Button(bottom_button_frame, text="Clear")
         clear_button.pack(side="right")
 
@@ -129,18 +133,20 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         input_type_var.trace_add("write",
                                  lambda *args: handle_input_type_change(input_type_var, input_text, input_image_label,
                                                                         single_line_textbox, output_text,
-                                                                        output_image_label))
+                                                                        output_image_label)
+        )
         browse_button.config(command=lambda: open_file_dialog(input_type_var, input_text, input_image_label,
-                                                              layout_type="Text-to-Image"))
+                                                              layout_type="Text-to-Image")
+        )
+
         run_model1_button.config(
-            command=lambda: run_model(1, "Text-to-Image", input_text, input_image_label, single_line_textbox,
-                                      output_text, output_image_label, input_type_var))
-        run_model2_button.config(
-            command=lambda: run_model(2, "Text-to-Image", input_text, input_image_label, single_line_textbox,
-                                      output_text, output_image_label, input_type_var))
+            command=lambda: run_image_generation_model(image_generator, input_text, output_text, output_image_label)
+        )
+        
         clear_button.config(
             command=lambda: clear_fields(input_text, input_image_label, single_line_textbox, output_text,
-                                         output_image_label))
+                                         output_image_label)
+        )
 
 
 def handle_input_type_change(input_type_var, input_text, input_image_label, single_line_textbox, output_text,
@@ -270,78 +276,20 @@ def clear_fields(input_text, input_image_label, single_line_textbox, output_text
         output_image_label.image = None
 
 
-def run_model(model_number, layout_type, input_text, input_image_label, single_line_textbox, output_text,
-              output_image_label, input_type_var):
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                                                             #
-    #   PLACE MODEL 1 or MODEL 2 CODE HERE                                                                        #
-    #                                                                                                             #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+def run_image_generation_model(model_object: TextToImage, input_text, output_text, output_image_label):
 
-    if layout_type == "Text-to-Image":
-        selected_type = input_type_var.get()
+    text_input = input_text.get("1.0", "end-1c")
+    image = model_object.generate_image(text_input)
 
-        if selected_type == "Text":
-            # For Text-to-Image model, Text input
-            #
-            # The Text input is contained in the 'input_text' variable.
-            # Example: text_data = input_text.get("1.0", "end-1c")
-            #
-            # The output textbox is in the 'output_text' variable.
-            # Example: output_text.delete("1.0", tk.END)
-            #          output_text.insert(tk.END, "Your output text here")
-            #
-            # The output image box is in the 'output_image_label' variable.
-            #
-            # Example: output_image_label.config(image=generated_image)
-            #          output_image_label.image = generated_image
-            #
-            # Your model code goes below this line
+    output_text.delete("1.0", tk.END)
+    output_text.insert(tk.END, text_input)
 
-            text_input = input_text.get("1.0", "end-1c")
-            output_text.delete("1.0", tk.END)
-            output_text.insert(tk.END, text_input)
+    output_image_label.config(image=image)
+    output_image_label.image = image
+            
+def run_text_generation_model(model_object: TextGeneration, input_text, output_text):
 
-        elif selected_type == "Image":
-            # For Text-to-Image model, Image input (with text prompt)
-            #
-            # The image is in the 'input_image_label.image' variable.
-            # The text prompt is in the 'single_line_textbox' variable.
-            # Example: image_data = input_image_label.image
-            #          text_prompt = single_line_textbox.get("1.0", "end-1c")
-            #
-            # The output textbox is in the 'output_text' variable.
-            # The output image box is in the 'output_image_label' variable.
-            #
-            # Your model code goes below this line
-
-            image_input = input_image_label.image
-            text_input = single_line_textbox.get("1.0", "end-1c")
-            output_image_label.config(image=image_input)
-            output_image_label.image = image_input
-            messagebox.showinfo("Model Run",
-                                f"Running image through Model {model_number} with the following text commands: {text_input}")
-
-    elif layout_type == "Image-to-Text":
-        # For Image-to-Text model
-        #
-        # The image is in the 'input_image_label.image' variable.
-        # Example: image_data = input_image_label.image
-        #
-        # The output textbox is in the 'output_text' variable.
-        #
-        # Your model code goes below this line
-
-        if output_text:
-            messagebox.showinfo("Model Run", f"Running Image-to-Text Model {model_number}")
-            generated_text = "This is a placeholder for the text generated from the image."
-            output_text.delete("1.0", tk.END)
-            output_text.insert(tk.END, generated_text)
-
-        else:  # This is the "Text-to-Image" layout
-            image_input = input_image_label.image
-            text_input = single_line_textbox.get("1.0", "end-1c")
-            output_image_label.config(image=image_input)
-            output_image_label.image = image_input
-            messagebox.showinfo("Model Run",
-                                f"Running image through Model {model_number} with the following text commands: {text_input}")
+    messagebox.showinfo("Model Run", "Running Image-to-Text Model")
+    generated_text = model_object.generate_response(input_text)[0]['generated_text']
+    output_text.delete("1.0", tk.END)
+    output_text.insert(tk.END, generated_text)

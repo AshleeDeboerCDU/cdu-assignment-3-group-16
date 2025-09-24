@@ -1,0 +1,16 @@
+{
+    "Text-To-Image": {
+        "name": "sd-legacy/stable-diffusion-v1-5",
+        "version": "v1-5",
+        "type": "Diffusion-based text-to-image generation model",
+        "author": "Robin Rombach, Patrick Esser",
+        "description": "Stable Diffusion is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input"
+    },
+    "Text-Generation": {
+        "name": "meta-llama/Llama-3.2-1B",
+        "version": "v3.2",
+        "type": "Text generation model based on LLama 3.2",
+        "author": "Meta (Corporate)",
+        "description": "The Llama 3.2 collection of multilingual large language models (LLMs) is a collection of pretrained and instruction-tuned generative models in 1B and 3B sizes (text in/text out). The Llama 3.2 instruction-tuned text only models are optimized for multilingual dialogue use cases, including agentic retrieval and summarization tasks. They outperform many of the available open source and closed chat models on common industry benchmarks."
+    }
+}
