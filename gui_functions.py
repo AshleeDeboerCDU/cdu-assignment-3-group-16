@@ -60,8 +60,6 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         text_output_box = tk.Text(model_output_frame, height=10, width=30)
 
         # NOTE: Set unused variables to None for clear_fields
-        input_image_label = None
-        single_line_textbox = None
         output_image_label = None
 
         # Pack the new widgets and buttons
@@ -89,7 +87,7 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
             command=lambda: run_text_generation_model(text_generator, input_text, text_output_box))
 
         clear_button.config(
-            command=lambda: clear_fields(input_text, input_image_label, single_line_textbox, text_output_box,
+            command=lambda: clear_fields(input_text, text_output_box,
                                          output_image_label))
 
         # Link Save button
@@ -122,8 +120,6 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
 
         # NOTE: Set unused variables to None for clear_fields
         output_text = None
-        input_image_label = None
-        single_line_textbox = None
 
         # Initial layout setup
         output_image_label.pack(fill="both", expand=True)  # Pack image first
@@ -153,7 +149,7 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         )
 
         clear_button.config(
-            command=lambda: clear_fields(input_text, input_image_label, single_line_textbox, output_text,
+            command=lambda: clear_fields(input_text, output_text,
                                          output_image_label)
         )
 
@@ -161,24 +157,16 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
         save_button_output.config(command=lambda: save_image_output(output_image_label))
 
 
-def clear_fields(input_text, input_image_label, single_line_textbox, output_text, output_image_label):
+def clear_fields(input_text, output_text, output_image_label):
     if input_text:
         input_text.delete("1.0", tk.END)
-    if single_line_textbox:
-        single_line_textbox.delete("1.0", tk.END)
     if output_text:
         output_text.delete("1.0", tk.END)
 
-    if input_image_label:
-        input_image_label.config(image="")
-        input_image_label.image = None
     if output_image_label:
         output_image_label.config(image="")
         output_image_label.image = None
         output_image_label.pil_image = None  # Also clear the PIL image reference
-
-
-# In gui_functions.py
 
 def open_file(input_type_var, input_text, input_image_label):
     """
@@ -188,14 +176,9 @@ def open_file(input_type_var, input_text, input_image_label):
     selected_type = input_type_var.get()
     layout_type = None
 
-    # The only supported file operation is loading a text file for text-based models
     if selected_type == "Text":
-        # We can assume the model is either Text-Generation or Text-To-Image
-        # For simplicity, we'll use the Text-To-Image logic for the menu open button,
-        # as it handles the most specific layout (which is now text-only input).
         layout_type = "Text-To-Image"
 
-    # *** REMOVED: elif selected_type == "Image": logic is gone ***
 
     if layout_type:
         open_file_dialog(input_type_var, input_text, input_image_label, layout_type)
@@ -206,9 +189,8 @@ def open_file(input_type_var, input_text, input_image_label):
 
 
 def open_file_dialog(input_type_var, input_text, input_image_label, layout_type, new_width=None):
-    # *** REMOVED: The entire 'if layout_type == "Image-to-Text":' block is gone. ***
 
-    # Logic for Text Input Models
+    # Logic for Text Input Model
     if layout_type in ("Text-To-Image", "Text-Generation"):
 
         if input_text is None:
@@ -297,7 +279,7 @@ def run_text_generation_model(model_object: TextGeneration, input_text, output_t
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#   New Save Functions
+#  Save Functions
 # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def save_text_output(output_text_widget):

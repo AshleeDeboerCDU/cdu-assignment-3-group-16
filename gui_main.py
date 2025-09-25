@@ -73,7 +73,6 @@ user_input_frame = ttk.LabelFrame(main_sections_frame, text="User Input Section"
 user_input_frame.pack(side="left", fill="both", padx=(0, 5))
 user_input_frame.pack_propagate(False) # Prevents the frame from resizing to fit its contents
 
-# We need to define the StringVar for the radio buttons here
 input_type_var = tk.StringVar(value="Text")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # #
