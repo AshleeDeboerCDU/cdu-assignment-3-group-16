@@ -84,7 +84,7 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
 
         # We need to link the buttons to the new widgets
         run_model1_button.config(
-            command=lambda: run_text_generation_model(text_generator, input_text, text_output_box))
+            command=lambda: run_text_generation_model(text_generator, input_text.get("1.0", "end-1c"), text_output_box))
 
         clear_button.config(
             command=lambda: clear_fields(input_text, text_output_box,
@@ -273,7 +273,7 @@ def run_image_generation_model(model_object: TextToImage, input_text, output_tex
 
 def run_text_generation_model(model_object: TextGeneration, input_text, output_text):
     messagebox.showinfo("Model Run", "Running Image-to-Text Model")
-    generated_text = model_object.generate_response(input_text)[0]['generated_text']
+    generated_text = model_object.generate_response(str(input_text))[0]['generated_text']
     output_text.delete("1.0", tk.END)
     output_text.insert(tk.END, generated_text)
 

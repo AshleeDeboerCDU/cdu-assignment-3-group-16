@@ -5,11 +5,32 @@ import torch
 from transformers import pipeline
 
 
+def print_model_info(func):
+    """
+    Decorator to print model information based on the model type.
+    """
+
+    def wrapper(self, *args, **kwargs):
+        if isinstance(self, TextToImage):
+            print("Text to Image Model Info:")
+            info = func(self, *args, **kwargs)
+            print([f"{k}: {v}\n" for k, v in info.items()])
+        elif isinstance(self, TextGeneration):
+            print("Text Generation Model Info:")
+            info = func(self, *args, **kwargs)
+            print([f"{k}: {v}\n" for k, v in info.items()])
+        else:
+            print("Unknown model type")
+        return func(self, *args, **kwargs)
+    return wrapper
+
 class ModelConfigs():
     """
     Class to handle model configurations from a JSON file.
 
     The model configs should be statically defined outside of the program and not require user input.
+
+    Setting configs to private to prevent modification after initialization. [ENCAPSULATION]
     """
     def __init__(self, config_path: str):
 
@@ -19,10 +40,10 @@ class ModelConfigs():
             with open(Path(config_path), mode='r') as f:
                 model_configs = json.loads(f.read())
 
-        self.configs = model_configs
+        self.__configs = model_configs
 
     def show_configs(self) -> dict:
-        return self.configs
+        return self.__configs
     
 
 class AIModelFactory():
@@ -33,14 +54,17 @@ class AIModelFactory():
     """
     def get_text_to_image_model(self, model_configs: ModelConfigs):
 
-        if model_configs.configs.get("Text-To-Image") is not None:
-            return TextToImage(model_configs.configs["Text-To-Image"])
+        model_configurations = model_configs.show_configs()
+
+        if model_configurations.get("Text-To-Image") is not None:
+            return TextToImage(model_configurations["Text-To-Image"])
 
     def get_text_generation_model(self, model_configs: ModelConfigs):
 
-        if model_configs.configs.get("Text-Generation") is not None:
-            return TextGeneration(model_configs.configs["Text-Generation"])
+        model_configurations = model_configs.show_configs()
 
+        if model_configurations.get("Text-Generation") is not None:
+            return TextGeneration(model_configurations["Text-Generation"])
 
 class TextToImage():
     """
@@ -56,14 +80,13 @@ class TextToImage():
         self.description = model_configs.get("description")
 
         # Model configuration
-        self.pipe = StableDiffusionPipeline.from_pretrained(self.name, dtype=torch.float16)
+        self.__pipe = StableDiffusionPipeline.from_pretrained(self.name, dtype=torch.float16)
 
     def generate_image(self, prompt, num_inference_steps=50, guidance_scale=7.5):
         assert isinstance(prompt, str), "Prompt should be a string"
 
-        return self.pipe(prompt).images[0]  
+        return self.__pipe(prompt).images[0]  
 
-    
     def save_image(self, image, file_path: str):
         """ 
         Save the generated image to a file.
@@ -78,13 +101,13 @@ class TextToImage():
         """
         return image.show()
 
-    def print_info(self) -> str:
+    @print_model_info
+    def get_info(self) -> str:
         """
         Print the model information.
         """
-        return f"Model Name: {self.name}\nVersion: {self.version}\nType: {self.type}\nAuthor: {self.author}\nDescription: {self.description}"
+        return {"name": self.name, "version": self.version, "type": self.type, "author": self.author, "description": self.description}
     
-
 class TextGeneration():
     """
     Class to handle text generation using a specified model.
@@ -100,7 +123,7 @@ class TextGeneration():
         self.description = model_configs.get("description")
 
         # Model configuration
-        self.pipe = pipeline("text-generation", model=self.name, model_kwargs={"dtype": torch.bfloat16})
+        self.__pipe = pipeline("text-generation", model=self.name, model_kwargs={"dtype": torch.bfloat16})
         self.messages = []
 
     def generate_response(self, prompt: str) -> str:
@@ -108,12 +131,12 @@ class TextGeneration():
         Generate a response based on the user input, and append the user prompt and model response to self.messages.
         """
         self.messages.append(f"User: {prompt}")
-        model_response = self.pipe(prompt)
+        model_response = self.__pipe(str(prompt))
+        print(model_response[0]['generated_text'])
         self.messages.append(f"Model: {model_response[0]['generated_text']}")
         
         return model_response
 
-    
     def save_conversation(self, image, file_path: str):
         """
         Save the conversation history to a text file.
@@ -129,8 +152,9 @@ class TextGeneration():
         """
         return ("\n").join([msg for msg in self.messages])
 
-    def print_info(self) -> str:
+    @print_model_info
+    def get_info(self) -> str:
         """
         Print the model information.
         """
-        return f"Model Name: {self.name}\nVersion: {self.version}\nType: {self.type}\nAuthor: {self.author}\nDescription: {self.description}"
+        return {"name": self.name, "version": self.version, "type": self.type, "author": self.author, "description": self.description}

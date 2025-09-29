@@ -52,6 +52,12 @@ model_combo = ttk.Combobox(model_selection_frame, values=model_options)
 model_combo.set("Text-To-Image")
 model_combo.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
+def on_model_selected(event):
+    selected_model = model_combo.get()
+    return selected_model
+
+model_combo.bind("<<ComboboxSelected>>", on_model_selected)
+
 # Load Model button
 load_button = ttk.Button(model_selection_frame, text="Load Model", command=lambda: gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame))
 load_button.pack(side="right")
@@ -109,14 +115,22 @@ selected_info_frame = ttk.LabelFrame(model_info_frame, text="Selected Model Info
 selected_info_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
 
 # Display points for Selected Model Info
-model_name_label = ttk.Label(selected_info_frame, text="• Model Name")
+model_name_label = ttk.Label(selected_info_frame, text=f"• Model Name: {model_configs.show_configs().get(model_combo.get(), {}).get('name', 'N/A')}")
 model_name_label.pack(anchor="w")
 
-category_label = ttk.Label(selected_info_frame, text="• Category (Text, Vision, Audio)")
+category_label = ttk.Label(selected_info_frame, text=f"• Category (Text, Vision, Audio): {model_configs.show_configs().get(model_combo.get(), {}).get('type', 'N/A')}")
 category_label.pack(anchor="w")
 
-description_label = ttk.Label(selected_info_frame, text="• Short Description")
+description_label = ttk.Label(selected_info_frame, text=f"• Short Description: {model_configs.show_configs().get(model_combo.get(), {}).get('description', 'N/A')}")
 description_label.pack(anchor="w")
+
+def update_selected_model_info(*args):
+    config = model_configs.show_configs().get(model_combo.get(), {})
+    model_name_label.config(text=f"• Model Name: {config.get('name', 'N/A')}")
+    category_label.config(text=f"• Category (Text, Vision, Audio): {config.get('type', 'N/A')}")
+    description_label.config(text=f"• Short Description: {config.get('description', 'N/A')}")
+
+model_combo.bind("<<ComboboxSelected>>", lambda event: update_selected_model_info())
 
 # OOP Concepts Explanation sub-frame
 oop_concepts_frame = ttk.LabelFrame(model_info_frame, text="OOP Concepts Explanation:", padding="10")
