@@ -26,12 +26,16 @@ file_menu.add_command(label="Exit", command=lambda: gui_functions.exit_app(root)
 # Create Models menu
 models_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Models", menu=models_menu)
-models_menu.add_command(label="Load Model", command=lambda: gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame))
+models_menu.add_command(label="Load Model", command=lambda: gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame, status_var))
 
 # Create Help menu
 help_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Help", menu=help_menu)
 help_menu.add_command(label="About", command=gui_functions.show_about)
+
+
+status_var = tk.StringVar(value="Ready.")
+status_bar_frame = ttk.Frame(root, relief=tk.SUNKEN)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #   Model Selection
@@ -59,7 +63,7 @@ def on_model_selected(event):
 model_combo.bind("<<ComboboxSelected>>", on_model_selected)
 
 # Load Model button
-load_button = ttk.Button(model_selection_frame, text="Load Model", command=lambda: gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame))
+load_button = ttk.Button(model_selection_frame, text="Load Model", command=lambda: gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame, status_var))
 load_button.pack(side="right")
 
 
@@ -96,7 +100,8 @@ model_output_frame.pack_propagate(False) # Prevents the frame from resizing to f
 
 # We will call the load_selected_model function once at the start to create the initial layout
 # We're passing a placeholder for input_text and other widgets because they will be created by the function
-gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame)
+gui_functions.load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame, status_var)
+
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -156,6 +161,15 @@ notes_frame.pack(fill="x", padx=10, pady=5)
 notes_label = ttk.Label(notes_frame, text="Notes Extra notes, instructions, or references.")
 notes_label.pack(side="left")
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#   Status Bar
+# # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+status_bar_frame.pack(fill="x", side="bottom")
+
+status_label = ttk.Label(status_bar_frame, textvariable=status_var, anchor="w")
+status_label.pack(side="left", fill="x", expand=True, padx=5, pady=2)
 
 # Start the main loop
 root.mainloop()

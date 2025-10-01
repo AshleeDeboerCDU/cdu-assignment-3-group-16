@@ -8,6 +8,8 @@ from PIL import Image, ImageTk
 # Assuming the models import is correct for context
 from models import AIModelFactory, ModelConfigs, TextToImage, TextGeneration
 import io  # Needed for Image saving logic
+import threading
+
 
 
 def exit_app(root):
@@ -22,7 +24,7 @@ def show_about():
     messagebox.showinfo("About", "Tkinter AI GUI\nVersion 1.0\nCreated by Group 16")
 
 
-def load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame):
+def load_selected_model(model_combo, input_type_var, user_input_frame, model_output_frame, status_var):
     """
     Displays a messagebox with the selected item from the combobox.
     It also changes the GUI layout based on the model.
@@ -84,7 +86,7 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
 
         # We need to link the buttons to the new widgets
         run_model1_button.config(
-            command=lambda: run_text_generation_model(text_generator, input_text.get("1.0", "end-1c"), text_output_box))
+            command=lambda: run_text_generation_model(text_generator, input_text.get("1.0", "end-1c"), text_output_box, status_var))
 
         clear_button.config(
             command=lambda: clear_fields(input_text, text_output_box,
@@ -145,8 +147,7 @@ def load_selected_model(model_combo, input_type_var, user_input_frame, model_out
                                                               layout_type="Text-To-Image"))
 
         run_model1_button.config(
-            command=lambda: run_image_generation_model(image_generator, input_text, output_text, output_image_label)
-        )
+            command=lambda: run_image_generation_model(image_generator, input_text, output_text, output_image_label, status_var))
 
         clear_button.config(
             command=lambda: clear_fields(input_text, output_text,
@@ -221,35 +222,81 @@ def open_file_dialog(input_type_var, input_text, input_image_label, layout_type,
                 messagebox.showerror("File Error", f"Could not read file: {e}")
 
 
-def run_image_generation_model(model_object: TextToImage, input_text, output_text, output_image_label):
+def run_image_generation_model(model_object: TextToImage, input_text, output_text, output_image_label, status_var):
     text_input = input_text.get("1.0", "end-1c").strip()
 
     if not text_input:
         messagebox.showwarning("Input Error", "Please enter a text prompt to generate an image.")
         return
 
-    # 1. Generate the PIL Image object
-    # The TextToImage model's generate_image() returns a PIL Image
-    pil_image = model_object.generate_image(text_input)
+    # 1. Update status to show work has started
+    status_var.set("Generating image... This may take a while.")
 
-    # 2. Store the PIL image directly on the label for saving later
+    # 2. Start the model generation on a new thread
+    thread = threading.Thread(
+        target=_generate_image_background,
+        args=(model_object, text_input, output_image_label, status_var)
+    )
+    thread.daemon = True  # Allows the main program to exit even if the thread is still running
+    thread.start()
+
+
+def run_text_generation_model(model_object: TextGeneration, input_text, output_text, status_var):
+    text_input = str(input_text).strip() # Ensure input is a string
+
+    if not text_input:
+        messagebox.showwarning("Input Error", "Please enter a text prompt.")
+        return
+
+    # 1. Update status to show work has started
+    status_var.set("Generating text response... This may take a while.")
+    # messagebox.showinfo("Model Run", "Running Text Generation Model") # Optional: You can remove this blocking message
+
+    # 2. Start the model generation on a new thread
+    thread = threading.Thread(
+        target=_generate_text_background,
+        args=(model_object, text_input, output_text, status_var)
+    )
+    thread.daemon = True # Important for clean exit
+    thread.start()
+
+def _generate_image_background(model_object, text_input, output_image_label, status_var):
+    """
+    Worker function to run the model on a separate thread.
+    """
+    try:
+        # 1. Generate the PIL Image object (Heavy computation here)
+        pil_image = model_object.generate_image(text_input)
+
+        # 2. Use output_image_label.after to safely call the GUI update function
+        # The lambda ensures we pass the result back to the main thread.
+        output_image_label.after(0, lambda: _update_image_display(
+            pil_image, output_image_label, status_var
+        ))
+    except Exception as e:
+        # 3. Handle errors and update status
+        output_image_label.after(0, lambda: status_var.set(f"Error: {e}"))
+        messagebox.showerror("Model Error", f"An error occurred during image generation: {e}")
+
+
+def _update_image_display(pil_image, output_image_label, status_var):
+    """
+    Safely updates the GUI elements on the main thread.
+    This function must only be called via .after() or similar main thread methods.
+    """
+    # 1. Store the PIL image directly on the label for saving later
     output_image_label.pil_image = pil_image
 
-    # 3. Resize and convert the PIL Image for Tkinter display
-
-    # Get the container's current size (after it has been packed)
-    # Use winfo_width/height from the label itself, or its master
+    # 2. Resize and convert the PIL Image for Tkinter display (Same logic as before)
     container_width = output_image_label.winfo_width()
     container_height = output_image_label.winfo_height()
 
     if container_width <= 1 or container_height <= 1:
-        # Fallback in case width/height hasn't been determined yet
         container_width = 300
         container_height = 300
 
     aspect_ratio = pil_image.width / pil_image.height
 
-    # Calculate new dimensions to fit the container while maintaining aspect ratio
     if (container_width / aspect_ratio) <= container_height:
         new_width = container_width
         new_height = int(new_width / aspect_ratio)
@@ -257,26 +304,51 @@ def run_image_generation_model(model_object: TextToImage, input_text, output_tex
         new_height = container_height
         new_width = int(new_height * aspect_ratio)
 
-    # Resize using Image.LANCZOS for high quality
+    from PIL import Image  # Re-importing locally
     resized_image = pil_image.resize((new_width, new_height), Image.LANCZOS)
 
-    # Convert to PhotoImage for Tkinter
+    from PIL import ImageTk  # Re-importing locally
     tk_image = ImageTk.PhotoImage(resized_image)
 
-    # 4. Configure the label
+    # 3. Configure the label
     output_image_label.config(image=tk_image)
+    output_image_label.image = tk_image  # Keep reference
 
-    # IMPORTANT: Keep a reference to the PhotoImage object to prevent garbage collection
-    output_image_label.image = tk_image
+    # 4. Update status
+    status_var.set("Image generation complete.")
 
 
+def _generate_text_background(model_object, input_text, output_text_widget, status_var):
+    """
+    Worker function to run the text generation model on a separate thread.
+    """
+    try:
+        # 1. Execute the heavy model call
+        # Note: model_object.generate_response returns a list of dictionaries
+        model_response = model_object.generate_response(input_text)
+        generated_text = model_response[0]['generated_text']
 
-def run_text_generation_model(model_object: TextGeneration, input_text, output_text):
-    messagebox.showinfo("Model Run", "Running Image-to-Text Model")
-    generated_text = model_object.generate_response(str(input_text))[0]['generated_text']
-    output_text.delete("1.0", tk.END)
-    output_text.insert(tk.END, generated_text)
+        # 2. Use .after to safely call the GUI update function on the main thread
+        output_text_widget.after(0, lambda: _update_text_display(
+            generated_text, output_text_widget, status_var
+        ))
 
+    except Exception as e:
+        # 3. Handle errors and update status
+        output_text_widget.after(0, lambda: status_var.set(f"Error: {e}"))
+        messagebox.showerror("Model Error", f"An error occurred during text generation: {e}")
+
+
+def _update_text_display(generated_text, output_text_widget, status_var):
+    """
+    Safely updates the GUI elements on the main thread after generation is complete.
+    """
+    # 1. Clear and insert the text
+    output_text_widget.delete("1.0", tk.END)
+    output_text_widget.insert(tk.END, generated_text)
+
+    # 2. Update status
+    status_var.set("Text generation complete.")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #  Save Functions
